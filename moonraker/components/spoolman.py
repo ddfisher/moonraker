@@ -63,6 +63,9 @@ class SpoolManager:
         self.server.register_remote_method(
             "spoolman_set_active_spool", self.set_active_spool
         )
+        self.server.register_remote_method(
+            "spoolman_get_active_spool", self.get_active_spool
+        )
 
     def _get_spoolman_urls(self, config: ConfigHelper) -> None:
         orig_url = config.get('server')
@@ -276,6 +279,15 @@ class SpoolManager:
             "spoolman:active_spool_set", {"spool_id": spool_id}
         )
         logging.info(f"Setting active spool to: {spool_id}")
+
+    def get_active_spool(self, continuation_macro: Optional[str]) -> None:
+        assert continuation_macro is None or isinstance(continuation_macro, str)
+        if continuation_macro is None:
+            logging.warn("get_active_spool called with no continuation macro.")
+            return
+        spool_id = self.spool_id
+        self.eventloop.create_task(self.klippy_apis.run_gcode(f"{continuation_macro} ID={spool_id}"))
+        logging.info(f"Got active spool info: {spool_id}")
 
     async def report_extrusion(self, eventtime: float) -> float:
         if not self.ws_connected:
